@@ -1,0 +1,113 @@
+version: 1
+
+applies_to:
+  manufacturers: [Nissan]
+  models: [Sentra, Versa]
+  years:
+    - 2010
+
+dbc:
+  files:
+    - path: signals.dbc
+
+endpoints:
+  body:
+    request_id: 0x745
+    response_id: 0x765
+    timeout_ms: 500
+
+sequences:
+  body_session_prep:
+    steps:
+      - send: [0x02, 0x10, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00]
+        expect: [0x50, 0x81]
+      - send: [0x02, 0x10, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00]
+        expect: [0x50, 0xC0]
+
+signals:
+  SPEED:
+    monitor:
+      message: SPEED
+      signal: SPEED
+
+  RPM:
+    monitor:
+      message: ENGINE_1
+      signal: RPM
+
+  TPS:
+    monitor:
+      message: ENGINE_4
+      signal: TPS
+
+  STEERING_ANGLE:
+    monitor:
+      message: STEERING
+      signal: STEERING_ANGLE
+
+  BRAKE_LIGHTS:
+    monitor:
+      message: SPEED_BRAKE
+      signal: BRAKE_LIGHTS
+
+  LOW_BEAMS:
+    monitor:
+      message: LIGHTS_STATUS_60D
+      signal: LOW_BEAMS
+
+  HIGH_BEAMS:
+    monitor:
+      message: LIGHTS_STATUS_60D
+      signal: HIGH_BEAMS
+
+  LEFT_SIGNAL:
+    monitor:
+      message: LIGHTS_STATUS_60D
+      signal: LEFT_SIGNAL
+
+  RIGHT_SIGNAL:
+    monitor:
+      message: LIGHTS_STATUS_60D
+      signal: RIGHT_SIGNAL
+
+  FRONT_LEFT_DOOR_OPEN:
+    monitor:
+      message: LIGHTS_STATUS_60D
+      signal: FRONT_LEFT_DOOR_OPEN
+
+  FRONT_RIGHT_DOOR_OPEN:
+    monitor:
+      message: LIGHTS_STATUS_60D
+      signal: FRONT_RIGHT_DOOR_OPEN
+
+  REAR_LEFT_DOOR_OPEN:
+    monitor:
+      message: LIGHTS_STATUS_60D
+      signal: REAR_LEFT_DOOR_OPEN
+
+  REAR_RIGHT_DOOR_OPEN:
+    monitor:
+      message: LIGHTS_STATUS_60D
+      signal: REAR_RIGHT_DOOR_OPEN
+
+actions:
+  HORN:
+    endpoint: body
+    steps:
+      - ref: sequences.body_session_prep
+      - send: [0x04, 0x30, 0x30, 0x00, 0x01, 0x00, 0x00, 0x00]
+        expect: [0x70, 0x30, 0x01]
+
+  LOCK:
+    endpoint: body
+    steps:
+      - ref: sequences.body_session_prep
+      - send: [0x04, 0x30, 0x38, 0x00, 0x01, 0x00, 0x00, 0x00]
+        expect: [0x70, 0x38, 0x01]
+
+  UNLOCK:
+    endpoint: body
+    steps:
+      - ref: sequences.body_session_prep
+      - send: [0x04, 0x30, 0x38, 0x00, 0x02, 0x00, 0x00, 0x00]
+        expect: [0x70, 0x38, 0x02]

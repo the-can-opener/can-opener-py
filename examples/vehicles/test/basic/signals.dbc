@@ -1,0 +1,44 @@
+VERSION ""
+NS_ :
+BS_:
+BU_: ECU
+
+BA_DEF_ SG_ "SignalProtocol" STRING;
+BA_DEF_ SG_ "Pid" INT 0 65535;
+BA_DEF_ SG_ "RequestCanId" INT 0 536870911;
+BA_DEF_ SG_ "ResponseCanId" INT 0 536870911;
+BA_DEF_ SG_ "DiagnosticServiceId" INT 0 255;
+BA_DEF_ SG_ "UdsServiceId" INT 0 255;
+BA_DEF_ SG_ "UdsDid" INT 0 65535;
+BA_DEF_ SG_ "DiagnosticTransport" STRING;
+BA_DEF_ SG_ "ResponseLength" INT 0 4095;
+BA_DEF_ SG_ "SignalValueType" STRING;
+
+BO_ 100 POWERTRAIN: 8 ECU
+ SG_ ENGINE_RPM : 0|16@1+ (0.25,0) [0|16000] "rpm" ECU
+
+BO_ 201 DIAGNOSTICS_RESPONSE: 8 ECU
+ SG_ VEHICLE_SPEED : 16|8@1+ (1,0) [0|255] "km/h" ECU
+
+BO_ 300 BODY: 8 ECU
+ SG_ HORN : 0|1@1+ (1,0) [0|1] "" ECU
+ SG_ TURN_SIGNAL_LEFT : 1|1@1+ (1,0) [0|1] "" ECU
+ SG_ HIGH_BEAMS : 2|1@1+ (1,0) [0|1] "" ECU
+
+BO_ 400 UDS: 8 ECU
+ SG_ DOOR_LOCK : 0|1@1+ (1,0) [0|1] "" ECU
+
+VAL_ 400 DOOR_LOCK 0 "unlocked" 1 "locked";
+
+BA_ "SignalProtocol" SG_ 100 ENGINE_RPM "frame";
+BA_ "SignalProtocol" SG_ 201 VEHICLE_SPEED "pid";
+BA_ "Pid" SG_ 201 VEHICLE_SPEED 13;
+BA_ "RequestCanId" SG_ 201 VEHICLE_SPEED 200;
+BA_ "ResponseCanId" SG_ 201 VEHICLE_SPEED 201;
+BA_ "DiagnosticTransport" SG_ 201 VEHICLE_SPEED "single";
+BA_ "SignalProtocol" SG_ 300 HORN "frame";
+BA_ "SignalProtocol" SG_ 300 TURN_SIGNAL_LEFT "frame";
+BA_ "SignalProtocol" SG_ 300 HIGH_BEAMS "frame";
+BA_ "SignalProtocol" SG_ 400 DOOR_LOCK "frame";
+BA_ "UdsServiceId" SG_ 400 DOOR_LOCK 46;
+BA_ "UdsDid" SG_ 400 DOOR_LOCK 61840;

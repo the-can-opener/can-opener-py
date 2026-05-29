@@ -1,0 +1,45 @@
+VERSION ""
+
+NS_ :
+BS_:
+BU_: Tester ECU
+
+BO_ 2024 OBD_Response_7E8: 8 ECU
+ SG_ RESPONSE_SERVICE : 8|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ PID M : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+
+ SG_ MIL_STATUS m1 : 31|1@1+ (1,0) [0|1] "bool" Vector__XXX
+ SG_ READINESS_RAW m1 : 32|24@1+ (1,0) [0|16777215] "" Vector__XXX
+
+ SG_ ENGINE_LOAD m4 : 24|8@1+ (0.3921568627,0) [0|100] "%" Vector__XXX
+ SG_ ECT m5 : 24|8@1+ (1,-40) [-40|215] "degC" Vector__XXX
+ SG_ STFT_B1 m6 : 24|8@1+ (0.78125,-100) [-100|99.22] "%" Vector__XXX
+ SG_ LTFT_B1 m7 : 24|8@1+ (0.78125,-100) [-100|99.22] "%" Vector__XXX
+ SG_ STFT_B2 m8 : 24|8@1+ (0.78125,-100) [-100|99.22] "%" Vector__XXX
+ SG_ LTFT_B2 m9 : 24|8@1+ (0.78125,-100) [-100|99.22] "%" Vector__XXX
+ SG_ FUEL_PRESSURE m10 : 24|8@1+ (3,0) [0|765] "kPa" Vector__XXX
+ SG_ MAP m11 : 24|8@1+ (1,0) [0|255] "kPa" Vector__XXX
+ SG_ RPM m12 : 31|16@0+ (0.25,0) [0|16383.75] "rpm" Vector__XXX
+ SG_ SPEED m13 : 24|8@1+ (1,0) [0|255] "km/h" Vector__XXX
+ SG_ TIMING_ADVANCE m14 : 24|8@1+ (0.5,-64) [-64|63.5] "deg" Vector__XXX
+ SG_ IAT m15 : 24|8@1+ (1,-40) [-40|215] "degC" Vector__XXX
+ SG_ MAF m16 : 31|16@0+ (0.01,0) [0|655.35] "g/s" Vector__XXX
+ SG_ TPS m17 : 24|8@1+ (0.3921568627,0) [0|100] "%" Vector__XXX
+
+ SG_ O2_B1S1_VOLTAGE m20 : 24|8@1+ (0.005,0) [0|1.275] "V" Vector__XXX
+ SG_ O2_B1S1_STFT m20 : 32|8@1+ (0.78125,-100) [-100|99.22] "%" Vector__XXX
+
+ SG_ RUNTIME m31 : 31|16@0+ (1,0) [0|65535] "s" Vector__XXX
+ SG_ FUEL_LEVEL m47 : 24|8@1+ (0.3921568627,0) [0|100] "%" Vector__XXX
+ SG_ DIST_SINCE_CLEAR m49 : 31|16@0+ (1,0) [0|65535] "km" Vector__XXX
+ SG_ BARO m51 : 24|8@1+ (1,0) [0|255] "kPa" Vector__XXX
+
+ SG_ MODULE_VOLTAGE m66 : 31|16@0+ (0.001,0) [0|65.535] "V" Vector__XXX
+ SG_ LAMBDA m68 : 31|16@0+ (0.000030517578125,0) [0|2] "lambda" Vector__XXX
+
+ SG_ OIL_TEMP m92 : 24|8@1+ (1,-40) [-40|215] "degC" Vector__XXX
+ SG_ FUEL_RATE m94 : 31|16@0+ (0.05,0) [0|3276.75] "L/h" Vector__XXX
+ SG_ DRIVER_TORQUE_DEMAND m97 : 24|8@1+ (1,-125) [-125|130] "%" Vector__XXX
+ SG_ ACTUAL_TORQUE m98 : 24|8@1+ (1,-125) [-125|130] "%" Vector__XXX
+
+ SG_ ODOMETER m166 : 31|32@0+ (0.1,0) [0|429496729.5] "km" Vector__XXX

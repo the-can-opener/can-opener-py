@@ -1,0 +1,54 @@
+version: 1
+
+applies_to: {}
+
+dbc:
+  files:
+    - path: signals.dbc
+
+endpoints:
+  obd:
+    request_id: 0x7DF
+    response_ids:
+      - range: [0x7E8, 0x7EF]
+    timeout_ms: 500
+
+queries:
+  RPM: { endpoint: obd, send: [0x01, 0x0C], expect: [0x41, 0x0C], dbc_mapping: { message: OBD_Response_7E8, signal: RPM } }
+  SPEED: { endpoint: obd, send: [0x01, 0x0D], expect: [0x41, 0x0D], dbc_mapping: { message: OBD_Response_7E8, signal: SPEED } }
+  ECT: { endpoint: obd, send: [0x01, 0x05], expect: [0x41, 0x05], dbc_mapping: { message: OBD_Response_7E8, signal: ECT } }
+  IAT: { endpoint: obd, send: [0x01, 0x0F], expect: [0x41, 0x0F], dbc_mapping: { message: OBD_Response_7E8, signal: IAT } }
+  MAP: { endpoint: obd, send: [0x01, 0x0B], expect: [0x41, 0x0B], dbc_mapping: { message: OBD_Response_7E8, signal: MAP } }
+  MAF: { endpoint: obd, send: [0x01, 0x10], expect: [0x41, 0x10], dbc_mapping: { message: OBD_Response_7E8, signal: MAF } }
+  TPS: { endpoint: obd, send: [0x01, 0x11], expect: [0x41, 0x11], dbc_mapping: { message: OBD_Response_7E8, signal: TPS } }
+
+  STFT_B1: { endpoint: obd, send: [0x01, 0x06], expect: [0x41, 0x06], dbc_mapping: { message: OBD_Response_7E8, signal: STFT_B1 } }
+  LTFT_B1: { endpoint: obd, send: [0x01, 0x07], expect: [0x41, 0x07], dbc_mapping: { message: OBD_Response_7E8, signal: LTFT_B1 } }
+  STFT_B2: { endpoint: obd, send: [0x01, 0x08], expect: [0x41, 0x08], dbc_mapping: { message: OBD_Response_7E8, signal: STFT_B2 } }
+  LTFT_B2: { endpoint: obd, send: [0x01, 0x09], expect: [0x41, 0x09], dbc_mapping: { message: OBD_Response_7E8, signal: LTFT_B2 } }
+
+  FUEL_PRESSURE: { endpoint: obd, send: [0x01, 0x0A], expect: [0x41, 0x0A], dbc_mapping: { message: OBD_Response_7E8, signal: FUEL_PRESSURE } }
+  TIMING_ADVANCE: { endpoint: obd, send: [0x01, 0x0E], expect: [0x41, 0x0E], dbc_mapping: { message: OBD_Response_7E8, signal: TIMING_ADVANCE } }
+  ENGINE_LOAD: { endpoint: obd, send: [0x01, 0x04], expect: [0x41, 0x04], dbc_mapping: { message: OBD_Response_7E8, signal: ENGINE_LOAD } }
+  RUNTIME: { endpoint: obd, send: [0x01, 0x1F], expect: [0x41, 0x1F], dbc_mapping: { message: OBD_Response_7E8, signal: RUNTIME } }
+  FUEL_LEVEL: { endpoint: obd, send: [0x01, 0x2F], expect: [0x41, 0x2F], dbc_mapping: { message: OBD_Response_7E8, signal: FUEL_LEVEL } }
+  DIST_SINCE_CLEAR: { endpoint: obd, send: [0x01, 0x31], expect: [0x41, 0x31], dbc_mapping: { message: OBD_Response_7E8, signal: DIST_SINCE_CLEAR } }
+  BARO: { endpoint: obd, send: [0x01, 0x33], expect: [0x41, 0x33], dbc_mapping: { message: OBD_Response_7E8, signal: BARO } }
+  LAMBDA: { endpoint: obd, send: [0x01, 0x44], expect: [0x41, 0x44], dbc_mapping: { message: OBD_Response_7E8, signal: LAMBDA } }
+  O2_DATA: { endpoint: obd, send: [0x01, 0x14], expect: [0x41, 0x14], dbc_mapping: { message: OBD_Response_7E8, signal: O2_B1S1_VOLTAGE } }
+  MODULE_VOLTAGE: { endpoint: obd, send: [0x01, 0x42], expect: [0x41, 0x42], dbc_mapping: { message: OBD_Response_7E8, signal: MODULE_VOLTAGE } }
+  OIL_TEMP: { endpoint: obd, send: [0x01, 0x5C], expect: [0x41, 0x5C], dbc_mapping: { message: OBD_Response_7E8, signal: OIL_TEMP } }
+  DRIVER_TORQUE_DEMAND: { endpoint: obd, send: [0x01, 0x61], expect: [0x41, 0x61], dbc_mapping: { message: OBD_Response_7E8, signal: DRIVER_TORQUE_DEMAND } }
+  ACTUAL_TORQUE: { endpoint: obd, send: [0x01, 0x62], expect: [0x41, 0x62], dbc_mapping: { message: OBD_Response_7E8, signal: ACTUAL_TORQUE } }
+  FUEL_RATE: { endpoint: obd, send: [0x01, 0x5E], expect: [0x41, 0x5E], dbc_mapping: { message: OBD_Response_7E8, signal: FUEL_RATE } }
+  ODOMETER: { endpoint: obd, send: [0x01, 0xA6], expect: [0x41, 0xA6], dbc_mapping: { message: OBD_Response_7E8, signal: ODOMETER } }
+
+  MIL_STATUS: { endpoint: obd, send: [0x01, 0x01], expect: [0x41, 0x01], dbc_mapping: { message: OBD_Response_7E8, signal: MIL_STATUS } }
+  READINESS_STATUS: { endpoint: obd, send: [0x01, 0x01], expect: [0x41, 0x01], dbc_mapping: { message: OBD_Response_7E8, signal: READINESS_RAW } }
+
+  VIN:
+    endpoint: obd
+    send: [0x09, 0x02]
+    expect: [0x49, 0x02, 0x01]
+    decoder: ascii
+    length: 17

@@ -1,0 +1,49 @@
+version: 1
+
+applies_to:
+  manufacturers: [Test]
+  models: [Basic]
+
+dbc:
+  files:
+    - path: signals.dbc
+
+endpoints:
+  diagnostics:
+    request_id: 200
+    response_id: 201
+    timeout_ms: 500
+
+  body:
+    request_id: 300
+    timeout_ms: 500
+
+signals:
+  ENGINE_RPM:
+    monitor:
+      message: POWERTRAIN
+      signal: ENGINE_RPM
+
+  TURN_SIGNAL_LEFT:
+    monitor:
+      message: BODY
+      signal: TURN_SIGNAL_LEFT
+
+  HIGH_BEAMS:
+    monitor:
+      message: BODY
+      signal: HIGH_BEAMS
+
+queries:
+  VEHICLE_SPEED:
+    endpoint: diagnostics
+    send: [0x01, 0x0D]
+    expect: [0x41, 0x0D]
+    dbc_mapping:
+      message: DIAGNOSTICS_RESPONSE
+      signal: VEHICLE_SPEED
+
+actions:
+  HORN:
+    endpoint: body
+    send: [0x01]

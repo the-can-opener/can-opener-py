@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "can-opener-py"
+version = "0.1.0"
+description = "Signal-first virtual vehicle library with DBC, profiles, BLE/wired CAN transports, and state."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = ["can", "dbc", "vehicle", "ble", "python-can", "uds"]
+dependencies = [
+  "bleak>=0.22",
+  "python-can>=4.0",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["can_opener"]
