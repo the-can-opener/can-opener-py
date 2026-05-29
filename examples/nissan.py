@@ -4,7 +4,7 @@ from pathlib import Path
 from can_opener import ConnectVehicleOptions, VirtualVehicleManager
 from can_opener.profile import VehicleProfileSource
 from can_opener.transport import PythonCanTransport
-
+import time
 CAN_INTERFACE = "slcan"
 CAN_CHANNEL = "/dev/tty.usbmodem209433A131331"
 CAN_BITRATE = 500000
@@ -46,6 +46,8 @@ async def main():
         await car.subscribe(DOOR_SIGNAL)
 
         await car.action("HORN")
+        time.sleep(1)
+        await car.action("HIGH_BEAM")
 
         while True:
             door_open = car.state.get(DOOR_SIGNAL)
