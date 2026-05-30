@@ -4,8 +4,9 @@ from pathlib import Path
 from can_opener import ConnectVehicleOptions, VirtualVehicleManager
 from can_opener.profile import VehicleProfileSource
 from can_opener.transport import PythonCanTransport
+import time
 
-# this script activates the horn when the door of the car is opened
+# this script activates the horn when the door of the car is opened and flashes the left signal 10 times
 # it is tested on a 2010 nissan versa
 
 CAN_INTERFACE = "slcan"
@@ -62,6 +63,13 @@ async def main():
             current_door_open = is_door_open(door_open)
             if previous_door_open is False and current_door_open is True:
                 await car.action("HORN")
+                time.sleep(0.1)
+                for i in range(10):
+                    await car.action("LEFT_SIGNAL")
+                    time.sleep(0.5)
+                    await car.action("SIGNAL_OFF")
+                    time.sleep(0.2)
+                time.sleep(0.1)
             previous_door_open = current_door_open
             await asyncio.sleep(PRINT_INTERVAL_SECONDS)
     finally:

@@ -105,6 +105,29 @@ actions:
       - send: [0x04, 0x30, 0x23, 0x00, 0x01, 0x00, 0x00, 0x00]
         expect: [0x70, 0x23, 0x01]
 
+  LEFT_SIGNAL:
+    # holds position for 5 seconds or until signal off is sent which ever comes first
+    endpoint: body
+    steps:
+      - ref: sequences.body_session_prep
+      - send: [0x04, 0x30, 0x2F, 0x00, 0x01, 0x00, 0x00, 0x00]
+        expect: [0x70, 0x2F, 0x01]
+
+  RIGHT_SIGNAL:
+    # holds position for 5 seconds or until signal off is sent which ever comes first
+    endpoint: body
+    steps:
+      - ref: sequences.body_session_prep
+      - send: [0x04, 0x30, 0x2F, 0x00, 0x02, 0x00, 0x00, 0x00]
+        expect: [0x70, 0x2F, 0x02]
+
+  SIGNAL_OFF:
+    endpoint: body
+    steps:
+      - ref: sequences.body_session_prep
+      - send: [0x04, 0x30, 0x2F, 0x00, 0x00, 0x00, 0x00, 0x00]
+        expect: [0x70, 0x2F, 0x00]
+
   LOCK:
     endpoint: body
     steps:
