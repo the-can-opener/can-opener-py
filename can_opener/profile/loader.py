@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import yaml
@@ -25,7 +26,9 @@ from .types import (
 
 class ProfileLoader:
     def load(self, sources: list[VehicleProfileSource]) -> list[LoadedVehicleProfile]:
-        return [self._load_one(source) for source in sources]
+        profiles = [self._load_one(source) for source in sources]
+        _assert_unique_slugs(profiles)
+        return profiles
 
     def _load_one(self, source: VehicleProfileSource) -> LoadedVehicleProfile:
         raw = yaml.safe_load(source.content)
@@ -63,7 +66,54 @@ class ProfileLoader:
                 for name, raw_signal in (raw.get("signals") or {}).items()
                 for signal in _normalize_signal(name, raw_signal)
             ],
+            display_name=(
+                _read_string(raw.get("name"), "name")
+                if raw.get("name") is not None
+                else None
+            ),
+            profile_version=(
+                _read_string(raw.get("profile_version"), "profile_version")
+                if raw.get("profile_version") is not None
+                else None
+            ),
+            slug=_normalize_slug(raw),
         )
+
+
+def _assert_unique_slugs(profiles: list[LoadedVehicleProfile]) -> None:
+    seen: dict[str, str] = {}
+    for profile in profiles:
+        if profile.slug is None:
+            continue
+        existing = seen.get(profile.slug)
+        if existing is not None:
+            raise VirtualVehicleError(
+                f'Profile slug "{profile.slug}" is already in use by {existing}; '
+                f"cannot also use it for {profile.name}"
+            )
+        seen[profile.slug] = profile.name
+
+
+def _normalize_slug(raw: dict[str, Any]) -> str | None:
+    if raw.get("slug") is not None:
+        slug = _read_string(raw.get("slug"), "slug")
+        if slug != _slugify(slug):
+            raise VirtualVehicleError(
+                "slug must contain only lowercase letters, numbers, and hyphens"
+            )
+        return slug
+
+    name = raw.get("name")
+    if name is None:
+        return None
+    return _slugify(_read_string(name, "name"))
+
+
+def _slugify(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    if not slug:
+        raise VirtualVehicleError("slug must contain at least one letter or number")
+    return slug
 
 
 def _normalize_endpoint(name: str, raw: dict[str, Any]) -> ProfileEndpoint:

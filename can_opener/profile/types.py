@@ -129,6 +129,9 @@ class LoadedVehicleProfile:
     queries: list[ProfileQuery]
     actions: list[ProfileAction]
     signals: list[ProfileMonitorSignal]
+    display_name: str | None = None
+    profile_version: str | None = None
+    slug: str | None = None
 
 
 def _read_dbc_paths(raw: dict[str, Any], profile_path: Path) -> list[str]:

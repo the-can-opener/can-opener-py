@@ -2,6 +2,8 @@ import pytest
 
 from can_opener.dbc.codec import write_signal_value
 from can_opener.dbc.types import CanFrame
+from can_opener.errors import VirtualVehicleError
+from can_opener.profile.loader import ProfileLoader
 from can_opener.profile.types import VehicleProfileSource
 from can_opener.manager import ConnectVehicleOptions, VirtualVehicleManager
 
@@ -22,6 +24,84 @@ def test_profile_source_from_directory_reads_declared_dbc_files():
     assert profile.name.endswith("test/basic/profile.yaml")
     assert [dbc.name for dbc in profile.dbc_files] == ["signals.dbc"]
     assert "BO_ 100 POWERTRAIN" in profile.dbc_files[0].content
+
+
+def test_profile_loader_derives_slug_from_name():
+    profile = ProfileLoader().load(
+        [
+            VehicleProfileSource(
+                name="nissan/versa/profile.yaml",
+                content="""
+version: 1
+profile_version: 1.0.0
+name: Nissan Versa Vehicle Profile
+""",
+            )
+        ]
+    )[0]
+
+    assert profile.display_name == "Nissan Versa Vehicle Profile"
+    assert profile.profile_version == "1.0.0"
+    assert profile.slug == "nissan-versa-vehicle-profile"
+
+
+def test_profile_loader_accepts_explicit_slug():
+    profile = ProfileLoader().load(
+        [
+            VehicleProfileSource(
+                name="nissan/versa/profile.yaml",
+                content="""
+version: 1
+name: Nissan Versa Vehicle Profile
+slug: nissan-versa-2010-vehicle-profile
+""",
+            )
+        ]
+    )[0]
+
+    assert profile.slug == "nissan-versa-2010-vehicle-profile"
+
+
+def test_profile_loader_rejects_invalid_explicit_slug():
+    with pytest.raises(VirtualVehicleError, match="slug must contain only lowercase"):
+        ProfileLoader().load(
+            [
+                VehicleProfileSource(
+                    name="nissan/versa/profile.yaml",
+                    content="""
+version: 1
+name: Nissan Versa Vehicle Profile
+slug: Nissan Versa Vehicle Profile
+""",
+                )
+            ]
+        )
+
+
+def test_profile_loader_rejects_duplicate_slugs():
+    with pytest.raises(
+        VirtualVehicleError,
+        match='Profile slug "nissan-versa-vehicle-profile" is already in use',
+    ):
+        ProfileLoader().load(
+            [
+                VehicleProfileSource(
+                    name="nissan/versa/profile.yaml",
+                    content="""
+version: 1
+name: Nissan Versa Vehicle Profile
+""",
+                ),
+                VehicleProfileSource(
+                    name="nissan/sentra/profile.yaml",
+                    content="""
+version: 1
+slug: nissan-versa-vehicle-profile
+name: Nissan Sentra Vehicle Profile
+""",
+                ),
+            ]
+        )
 
 
 @pytest.mark.asyncio

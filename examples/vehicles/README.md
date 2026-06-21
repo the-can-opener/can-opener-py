@@ -39,6 +39,9 @@ Only `version` is required.
 
 ```yaml
 version: 1
+profile_version: 1.0.0
+name: Vehicle Profile Name
+slug: vehicle-profile-name
 
 applies_to: {}
 
@@ -55,6 +58,10 @@ queries: {}
 
 actions: {}
 ```
+
+`name`, `profile_version`, and `slug` are package metadata. If `slug` is omitted,
+it is derived from `name` by lowercasing it and replacing non-alphanumeric runs
+with hyphens. Profile slugs must be unique across loaded profiles.
 
 ## Applicability
 
