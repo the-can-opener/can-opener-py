@@ -16,3 +16,11 @@ class SignalProtocolError(VirtualVehicleError):
 
 class VehicleConnectionError(VirtualVehicleError):
     pass
+
+
+class BatchUnsupportedError(VirtualVehicleError):
+    """Raised by a transport whose connected device turns out not to support batches.
+
+    Nothing has been transmitted when it is raised, so the caller replays the
+    steps one request at a time.
+    """

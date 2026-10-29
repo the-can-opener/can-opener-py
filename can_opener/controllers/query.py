@@ -11,10 +11,11 @@ from can_opener.profile.normalize import apply_value_normalization
 from can_opener.profile.request_builder import (
     assert_expected_response,
     build_request_frame,
+    can_fd_request,
     response_bounds,
     strip_expected_prefix,
 )
-from can_opener.profile.types import ProfileQuery, QueryDecoder
+from can_opener.profile.types import ProfileQuery, QueryDecoder, ResolvedProfileEndpoint
 from can_opener.transport.types import VehicleRequest, VehicleTransport
 from can_opener.vehicle.state import VehicleState
 
@@ -55,7 +56,9 @@ class QueryController:
             expect_can_response=True,
             response_id_start=kwargs.get("response_id_start"),
             response_id_end=kwargs.get("response_id_end"),
-            timeout_ms=endpoint.timeout_ms,
+            timeout_ms=query.timeout_ms if query.timeout_ms is not None else endpoint.timeout_ms,
+            bus=endpoint.bus,
+            can_fd=can_fd_request(endpoint.can_fd, frame, f"Endpoint {endpoint.name}"),
         )
         task = asyncio.create_task(self._transport.send_request(req))
         self._pending.add(task)
@@ -139,7 +142,7 @@ class QueryController:
         finally:
             active.in_flight = False
 
-    def _resolve_endpoint(self, name: str):
+    def _resolve_endpoint(self, name: str) -> ResolvedProfileEndpoint:
         if self._capabilities is None:
             raise ValueError(f"No capability registry configured for endpoint {name}")
         return self._capabilities.resolve_endpoint(name)

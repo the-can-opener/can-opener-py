@@ -62,6 +62,12 @@ class VirtualVehicleManager:
                 dispose_frames=dispose_frames,
             ),
         )
+        try:
+            await vehicle.configure_buses()
+        except Exception:
+            dispose_frames()
+            await options.transport.disconnect()
+            raise
         self._vehicles[options.id] = vehicle
         return vehicle
 

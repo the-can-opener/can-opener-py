@@ -10,8 +10,9 @@ It keeps the same separation of concerns as the TypeScript library:
 - YAML vehicle profiles define executable capabilities: endpoints, requests,
   actions, monitor subscriptions, sequences, and DBC mappings.
 - Transports send raw CAN requests and monitor frames. The package includes a
-  real Bleak-based `BleTransport` for the CanOpener firmware and a
-  python-can-based `PythonCanTransport` for wired CAN adapters.
+  real Bleak-based `BleTransport` for the CanOpener firmware, a
+  python-can-based `PythonCanTransport` for wired CAN adapters, and an
+  in-memory `MockTransport` for tests.
 
 ## Install
 
@@ -153,6 +154,67 @@ BO_ 2024 OBD_Response_7E8: 8 ECU
  SG_ SPEED m13 : 24|8@1+ (1,0) [0|255] "km/h" Vector__XXX
 ```
 
+### Buses, CAN FD, timing and batching
+
+Profiles follow the `can-opener-js` vehicle profile spec (version 1):
+
+```yaml
+version: 1
+
+applies_to:                 # catalog metadata, parsed into ProfileAppliesTo
+  manufacturers: [Nissan]
+  years: [2011, { range: [2012, 2015] }]
+
+can:
+  buses:                    # logical controllers 0-255
+    0: { bitrate: 500000, data_bitrate: 2000000, fd: { isotp: { tx_dl: 64 } } }
+    1: { bitrate: auto }
+
+endpoints:
+  obd:                      # FD at the bus's tx_dl (64)
+    request_id: 0x7DF
+    response_ids: [{ range: [0x7E8, 0x7EF] }]
+  body:
+    bus: 1
+    extended: false
+    request_id: 0x745
+    response_id: 0x765
+    fd: false               # classic on an FD bus; `true` or `{ tx_dl: 8 }` also allowed
+
+queries:
+  RPM: { endpoint: obd, send: [0x02, 0x01, 0x0C, 0, 0, 0, 0, 0], expect: [0x41, 0x0C], timeout_ms: 750 }
+
+actions:
+  HORN:
+    endpoint: body
+    batch: false            # one transport transaction per step
+    steps:
+      - send: [0x02, 0x10, 0x81, 0, 0, 0, 0, 0]
+        expect: [0x50, 0x81]
+        timeout_ms: 250
+        delay_ms: 50        # gap after this step; defaults to 20 ms
+      - send: [0x04, 0x30, 0x30, 0x00, 0x01, 0, 0, 0]
+  LEFT_SIGNAL:
+    send: { bus: 1, request_id: 0x123, fd: false, request: [0x01] }
+
+signals:
+  DOOR:
+    monitor: { bus: 1, message: BODY, signal: DOOR }
+```
+
+- Frame format resolution: endpoint/inline `fd` > bus `fd` > classic. Sending
+  FD on a bus no loaded profile declares `fd` for is a load error.
+- Buses may be declared by one profile and used by another; conflicting
+  settings for the same bus across profiles raise
+  (`merge_profile_can_bus_configs`).
+- On connect, `VirtualVehicle.configure_buses()` applies the merged bus
+  timing through `transport.configure_bus` when the transport has it,
+  skipping unchanged buses and tolerating `auto_detect_failed`;
+  `car.bus_timing()` returns the per-bus `BusTiming` reports.
+- Multi-step actions honour `delay_ms` between steps. When the transport
+  implements `send_request_batch` and the action does not set `batch: false`,
+  consecutive same-bus steps are sent as one `BatchRequest`.
+
 ## API Overview
 
 `VirtualVehicleManager` connects isolated vehicles:
@@ -180,7 +242,14 @@ await car.action("HORN")
 car.state.get("RPM")
 car.state.rpm
 car.state.snapshot()
+
+await car.configure_buses()
+car.bus_timing()
 ```
+
+`MockTransport` (`can_opener.transport.mock`) scripts responses per
+transmitted frame, records requests, batches, monitor and bus-config calls,
+and injects monitor frames with `emit_frame()` / `emit_snapshot()`.
 
 ## Development
 
@@ -189,5 +258,6 @@ python -m pytest
 ```
 
 The test suite covers the DBC parser/codec/controller, profile query/action and
-subscription flows, Nissan Sentra fixture integration, and BLE packet
-builders/parsers.
+subscription flows (including CAN buses, FD resolution, step delays and
+batching), Nissan Sentra fixture integration, BLE packet builders/parsers,
+and `MockTransport`.

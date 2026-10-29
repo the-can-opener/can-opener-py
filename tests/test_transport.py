@@ -10,7 +10,13 @@ from can_opener.transport.ble import (
     parse_request_response,
 )
 from can_opener.transport.python_can import PythonCanTransport
-from can_opener.transport.types import MonitorControlRequest, VehicleRequest
+from can_opener.transport.types import (
+    BatchRequest,
+    BatchStep,
+    CanFdRequest,
+    MonitorControlRequest,
+    VehicleRequest,
+)
 
 
 def test_ble_request_packet_uses_firmware_layouts():
@@ -187,3 +193,32 @@ async def test_python_can_transport_emits_monitor_snapshots():
     assert frame.can_id == 0x123
     assert frame.data == b"\x01\x02\x03"
     await transport.disconnect()
+
+
+def test_vehicle_request_carries_bus_and_can_fd():
+    classic = VehicleRequest(tx_frame=CanFrame(can_id=0x7DF, data=b"\x02\x01\x0c"), expect_can_response=True)
+    assert classic.bus is None and classic.can_fd is None
+
+    fd = VehicleRequest(
+        tx_frame=CanFrame(can_id=0x7DF, data=b"\x02\x01\x0c\x00\x00\x00\x00\x00", dlc=8, bus=1),
+        expect_can_response=True,
+        bus=1,
+        can_fd=CanFdRequest(tx_dl=64, payload=b"\x01\x0c"),
+    )
+    assert fd.can_fd is not None and fd.can_fd.tx_dl == 64 and fd.can_fd.payload == b"\x01\x0c"
+    assert fd.tx_frame.clone().bus == 1
+
+    batch = BatchRequest(steps=[BatchStep(request=fd, delay_ms=20)])
+    assert batch.steps[0].delay_ms == 20
+
+
+def test_ble_request_packet_ignores_bus_and_fd_metadata():
+    packet = build_request_packet(
+        1,
+        VehicleRequest(
+            tx_frame=CanFrame(can_id=0x123, dlc=2, data=bytes([1, 2]), bus=1),
+            expect_can_response=False,
+            bus=1,
+        ),
+    )
+    assert packet == bytes([1, 0, 0x23, 0x01, 0, 0, 2, 1, 2, 0, 0, 0, 0, 0, 0])

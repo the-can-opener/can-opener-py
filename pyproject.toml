@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "can-opener-py"
-version = "0.1.0"
+version = "0.2.0"
 description = "Signal-first virtual vehicle library with DBC, profiles, BLE/wired CAN transports, and state."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,6 +24,7 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 
 [tool.hatch.build.targets.wheel]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import asyncio
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from can_opener.controllers.action import ActionController
@@ -8,9 +9,15 @@ from can_opener.controllers.query import QueryController
 from can_opener.controllers.subscription import SubscriptionController, SubscriptionRequest
 from can_opener.dbc.controller import DbcController
 from can_opener.dbc.types import ActionOptions, CanFrame, DbcFile, PollingOptions, QuerySubscriptionHandle, VehicleSignalState
-from can_opener.errors import SignalProtocolError, VirtualVehicleError
+from can_opener.errors import SignalProtocolError, VehicleConnectionError, VirtualVehicleError
 from can_opener.profile.capabilities import CapabilityRegistry
-from can_opener.transport.types import VehicleTransport
+from can_opener.profile.types import ProfileCanBusConfig
+from can_opener.transport.types import (
+    BusTiming,
+    ConfigureBusRequest,
+    VehicleTransport,
+    transport_supports_configure_bus,
+)
 
 from .state import VehicleState
 
@@ -22,6 +29,8 @@ class VirtualVehicleInternals:
     actions: ActionController
     capabilities: CapabilityRegistry
     dispose_frames: Callable[[], None]
+    # What the transport reported when each bus's profile timing was applied.
+    bus_timing: dict[int, BusTiming] = field(default_factory=dict)
 
 
 class VirtualVehicle:
@@ -38,6 +47,7 @@ class VirtualVehicle:
         self.dbc = dbc
         self.transport = transport
         self._internals = internals
+        self._bus_timing_lock = asyncio.Lock()
 
     async def query(self, signal_name: str) -> Any:
         if self._internals.capabilities.has_profiles():
@@ -99,6 +109,56 @@ class VirtualVehicle:
         self._internals.queries.clear_pending()
         self._internals.actions.clear_scheduled()
 
+    async def configure_buses(self) -> dict[int, BusTiming]:
+        """Applies bus timing declared by the loaded profiles.
+
+        Buses whose requested timing has not changed since the last call are
+        skipped, so a profile reload does not repeat an auto-detect. A failed
+        ``auto`` detection leaves the adapter on its previous timing and is
+        reported, not raised; any other failure raises
+        ``VehicleConnectionError``. Transports without ``configure_bus`` are
+        left on their default timing. Calls run one at a time.
+        """
+        async with self._bus_timing_lock:
+            pending = [
+                config
+                for config in self._internals.capabilities.bus_configs()
+                if not self._already_applied(config)
+            ]
+            if pending and transport_supports_configure_bus(self.transport):
+                for config in pending:
+                    await self._apply_bus_timing(config)
+        return self.bus_timing()
+
+    def bus_timing(self) -> dict[int, BusTiming]:
+        """Timing the adapter reported per configured bus, keyed by bus number."""
+        return dict(sorted(self._internals.bus_timing.items()))
+
+    def _already_applied(self, config: ProfileCanBusConfig) -> bool:
+        report = self._internals.bus_timing.get(config.bus)
+        return report is not None and report.requested == config
+
+    async def _apply_bus_timing(self, config: ProfileCanBusConfig) -> None:
+        response = await self.transport.configure_bus(  # type: ignore[attr-defined]
+            ConfigureBusRequest(
+                bus=config.bus,
+                bitrate=config.bitrate,
+                data_bitrate=config.data_bitrate,
+                fd=config.fd,
+            )
+        )
+        if response.status == "error":
+            detail = f": {response.message}" if response.message else ""
+            raise VehicleConnectionError(
+                f"Failed to configure CAN bus {config.bus}: {response.status}{detail}"
+            )
+        self._internals.bus_timing[config.bus] = BusTiming(
+            requested=config,
+            status=response.status,
+            bitrate=response.bitrate,
+            data_bitrate=response.data_bitrate,
+        )
+
     def handle_frame(self, frame: CanFrame) -> None:
         self._internals.subscriptions.handle_frame(frame)
 
@@ -119,6 +179,7 @@ class VirtualVehicle:
                     signal=self.dbc.resolve_message_signal(monitor.message, monitor.signal),
                 ),
                 normalize=monitor.normalize,
+                bus=monitor.bus,
             )
 
         state = self.dbc.resolve_state(signal_name)

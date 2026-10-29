@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,12 +16,15 @@ from can_opener.vehicle.state import VehicleState
 class SubscriptionRequest:
     state: VehicleSignalState
     normalize: ProfileValueNormalization | None = None
+    # Logical CAN controller the signal's frames arrive on. None means bus 0.
+    bus: int | None = None
 
 
 @dataclass(slots=True)
 class _ActiveSubscription:
     state: VehicleSignalState
     normalize: ProfileValueNormalization | None = None
+    bus: int | None = None
 
 
 class SubscriptionController:
@@ -31,6 +35,7 @@ class SubscriptionController:
         self._active_by_signal: dict[str, _ActiveSubscription] = {}
         self._active_by_can_id: dict[int, dict[str, _ActiveSubscription]] = {}
         self._monitored_can_ids: set[int] = set()
+        self._monitored_bus_by_can_id: dict[int, int | None] = {}
 
     async def add(self, signal: VehicleSignal) -> bool:
         return await self.add_many([SubscriptionRequest(VehicleSignalState(signal.name, signal))])
@@ -40,7 +45,7 @@ class SubscriptionController:
         for request in requests:
             self._remove_active(request.state.name, affected_can_ids)
         for request in requests:
-            active = _ActiveSubscription(state=request.state, normalize=request.normalize)
+            active = _ActiveSubscription(state=request.state, normalize=request.normalize, bus=request.bus)
             self._active_by_signal[request.state.name] = active
             self._active_by_can_id.setdefault(request.state.signal.can_id, {})[request.state.name] = active
             affected_can_ids.add(request.state.signal.can_id)
@@ -78,9 +83,8 @@ class SubscriptionController:
         self._active_by_signal.clear()
         self._active_by_can_id.clear()
         self._monitored_can_ids.clear()
+        self._monitored_bus_by_can_id.clear()
         # Fire-and-forget mirrors the JS implementation used during teardown.
-        import asyncio
-
         try:
             asyncio.create_task(self._transport.update_monitor(MonitorControlRequest("clear")))
         except RuntimeError:
@@ -105,12 +109,15 @@ class SubscriptionController:
         frame_subscriptions = self._active_by_can_id.get(can_id)
         if not frame_subscriptions:
             if can_id in self._monitored_can_ids:
-                await self._apply_monitor_update(MonitorControlRequest("remove", [can_id]))
+                bus = self._monitored_bus_by_can_id.pop(can_id, None)
+                await self._apply_monitor_update(MonitorControlRequest("remove", [can_id], bus))
                 self._monitored_can_ids.discard(can_id)
             return
         if can_id not in self._monitored_can_ids:
-            await self._apply_monitor_update(MonitorControlRequest("add", [can_id]))
+            bus = next(iter(frame_subscriptions.values())).bus
+            await self._apply_monitor_update(MonitorControlRequest("add", [can_id], bus))
             self._monitored_can_ids.add(can_id)
+            self._monitored_bus_by_can_id[can_id] = bus
 
     async def _apply_monitor_update(self, req: MonitorControlRequest) -> None:
         response = await self._transport.update_monitor(req)

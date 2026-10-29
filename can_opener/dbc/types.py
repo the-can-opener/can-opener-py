@@ -66,6 +66,8 @@ class CanFrame:
     data: bytes | bytearray
     dlc: int | None = None
     extended: bool | None = None
+    # Logical CAN controller. None means bus 0.
+    bus: int | None = None
 
     def clone(self) -> "CanFrame":
         return CanFrame(
@@ -73,6 +75,7 @@ class CanFrame:
             data=bytes(self.data),
             dlc=self.dlc,
             extended=self.extended,
+            bus=self.bus,
         )
 
 

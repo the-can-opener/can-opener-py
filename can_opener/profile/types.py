@@ -11,6 +11,14 @@ from can_opener.errors import VirtualVehicleError
 
 ProfileByte = int | Literal["*"]
 
+# ISO-TP frame size for a CAN FD request: 8 keeps the classic PCI in an FD
+# frame, 64 uses the ISO 15765-2:2016 escape form.
+CanFdTxDl = Literal[8, 64]
+CanBitrate = int | Literal["auto"]
+
+# Used when a step omits ``delay_ms``.
+DEFAULT_STEP_DELAY_MS = 20
+
 
 @dataclass(slots=True)
 class VehicleProfileSource:
@@ -47,6 +55,49 @@ class VehicleProfileSource:
 
 
 @dataclass(frozen=True, slots=True)
+class ProfileAppliesTo:
+    """Catalog metadata describing the vehicles a profile targets.
+
+    Missing (empty) fields act as wildcards. ``years`` entries are either a
+    single model year or an inclusive ``(start, end)`` range.
+    """
+
+    manufacturers: list[str] = field(default_factory=list)
+    models: list[str] = field(default_factory=list)
+    years: list[int | tuple[int, int]] = field(default_factory=list)
+    trims: list[str] = field(default_factory=list)
+    engines: list[str] = field(default_factory=list)
+    markets: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class ProfileCanBusFd:
+    """ISO-TP frame size for endpoints on this bus that do not set their own."""
+
+    isotp_tx_dl: CanFdTxDl = 8
+
+
+@dataclass(frozen=True, slots=True)
+class ProfileCanBusConfig:
+    """Timing and default frame format for one logical CAN controller."""
+
+    bus: int
+    bitrate: CanBitrate
+    data_bitrate: int | None = None
+    fd: ProfileCanBusFd | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ProfileCanFdConfig:
+    tx_dl: CanFdTxDl
+
+
+# ``True``: CAN FD at the bus's ISO-TP frame size. ``ProfileCanFdConfig``: CAN FD
+# at that size. ``False``: classic CAN.
+ProfileEndpointFd = bool | ProfileCanFdConfig
+
+
+@dataclass(frozen=True, slots=True)
 class ResponseIdRange:
     start: int
     end: int
@@ -58,6 +109,16 @@ class ProfileEndpoint:
     request_id: int
     response_ranges: list[ResponseIdRange] = field(default_factory=list)
     timeout_ms: int | None = None
+    bus: int | None = None
+    extended: bool | None = None
+    fd: ProfileEndpointFd | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedProfileEndpoint(ProfileEndpoint):
+    """An endpoint with its bus default applied, as ``CapabilityRegistry`` returns it."""
+
+    can_fd: ProfileCanFdConfig | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +154,15 @@ class RequestStep:
     endpoint: str | None = None
     request_id: int | None = None
     expect: ExpectPattern | None = None
+    # Inline request_id steps only; endpoint-backed steps inherit endpoint.bus.
+    bus: int | None = None
+    # Inline request_id steps only: send as CAN FD (True) or classic (False).
+    # None: the bus default. Endpoint-backed steps use the endpoint's setting.
+    fd: bool | None = None
+    # Overrides the endpoint response timeout for this step.
+    timeout_ms: int | None = None
+    # Gap inserted after this step before the next one is transmitted.
+    delay_ms: int = DEFAULT_STEP_DELAY_MS
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +174,7 @@ class ProfileQuery:
     decoder: QueryDecoder | None = None
     length: int | None = None
     normalize: ProfileValueNormalization | None = None
+    timeout_ms: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,6 +182,9 @@ class ProfileAction:
     name: str
     endpoint: str | None = None
     steps: list[RequestStep] = field(default_factory=list)
+    # When False, multi-step actions are sent one transport transaction at a
+    # time even if the transport can batch them.
+    batch: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +193,7 @@ class ProfileMonitorSignal:
     message: str
     signal: str
     normalize: ProfileValueNormalization | None = None
+    bus: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,6 +207,8 @@ class LoadedVehicleProfile:
     display_name: str | None = None
     profile_version: str | None = None
     slug: str | None = None
+    applies_to: ProfileAppliesTo | None = None
+    can_buses: list[ProfileCanBusConfig] = field(default_factory=list)
 
 
 def _read_dbc_paths(raw: dict[str, Any], profile_path: Path) -> list[str]:
